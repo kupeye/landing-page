@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KupEye · Kubernetes upgrades with your eyes open</title>
+  <meta name="description" content="KupEye finds every deprecated API, outdated node and incompatible add-on in your clusters, names the team that owns each one, and holds the upgrade until the evidence is clean.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#06080F" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F4F6FB" media="(prefers-color-scheme: light)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="KupEye · Kubernetes upgrades with your eyes open">
+  <meta property="og:description" content="Find every upgrade blocker, name its owner, and gate the upgrade until the evidence is clean.">
+  <!-- TODO: add og:url, og:image and a canonical link once the domain is set -->
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/unbounded-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script>
+    /* Set the theme before first paint: saved choice, else the system setting. */
+    (function () {
+      var theme = 'dark';
+      try {
+        var saved = localStorage.getItem('kupeye-theme');
+        if (saved === 'light' || saved === 'dark') { theme = saved; }
+        else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) { theme = 'light'; }
+      } catch (e) {}
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <script src="assets/js/main.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="mark" viewBox="8 8 48 48"><path fill="none" d="M16 21.2 32 13.5 48 21.2"/><path fill="none" d="M32 23.5 42.95 28.77 45.65 40.62 38.07 50.11 25.93 50.11 18.35 40.62 21.05 28.77Z"/><circle cx="32" cy="37.5" r="6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></symbol>
+  <symbol id="i-audit" viewBox="0 0 24 24"><path d="M14 3H6.5A2.5 2.5 0 0 0 4 5.5v13A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5V9z"/><path d="M14 3v6h6"/><circle cx="11.5" cy="14" r="2.5"/><path d="M13.3 15.8l2.2 2.2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c1.4-3.8 4.3-6 7.5-6s6.1 2.2 7.5 6"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M6 7.5v9M18 10.5c0 4.5-6 3.5-11 6.2"/></symbol>
+  <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.5 3.5 5.2"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="16" height="6.5" rx="1.5"/><path d="M8 7.25h.01M8 16.75h.01"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-drain" viewBox="0 0 24 24"><path d="M4 12h11M11 7l5 5-5 5M20 4v16"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.8 18.2A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.8L14 9.5V3M7.5 15h9"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.66 3.13 3 7 3s7-1.34 7-3V6M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3"/></symbol>
+  <symbol id="i-rollback" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4v5h5"/></symbol>
+  <symbol id="i-pr" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-4M13 4.5L10.5 7 13 9.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M5 8l4 4-4 4M12 16h7"/></symbol>
+</svg>
+
+<header class="site-header">
+  <nav class="container nav" aria-label="Main">
+    <a class="brand" href="#top" aria-label="KupEye home">
+      <svg class="brand__mark" aria-hidden="true"><use href="#mark"/></svg>
+      <span class="brand__name">Kup<span>Eye</span></span>
+    </a>
+    <div class="nav__links">
+      <a class="link" href="#product">Product</a>
+      <a class="link" href="#plan">Planning</a>
+      <a class="link" href="#how">How it works</a>
+      <a class="link" href="#pricing">Pricing</a>
+      <a class="link" href="#docs">Docs</a><!-- TODO: link to the docs -->
+    </div>
+    <div class="nav__actions">
+      <a class="link hide-sm" href="#github"><svg class="i i--16" aria-hidden="true"><use href="#i-star"/></svg><span>GitHub</span></a><!-- TODO: link to the repo -->
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to light theme">
+        <svg class="i icon-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+        <svg class="i icon-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+      </button>
+      <a class="btn btn--primary btn--sm" href="#start">Start free</a>
+    </div>
+  </nav>
+</header>
+
+<main id="main">
+
+  <section class="hero" id="top">
+    <div class="grid-bg" aria-hidden="true"></div>
+    <div class="container hero__inner">
+
+      <div class="hero__copy">
+        <p class="pill"><span class="pulse" aria-hidden="true"></span><span>Open-source Kubernetes upgrade planner</span></p>
+        <h1 class="h1">Upgrade Kubernetes with your <span class="glow">eyes open.</span></h1>
+        <p class="hero__lede">KupEye finds every deprecated API, outdated node and incompatible add-on in your clusters, names the team that owns each one, and holds the upgrade until the evidence is clean.</p>
+        <div class="cta-row">
+          <a class="btn btn--primary" href="#start"><span>Start free</span><svg class="i i--18" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn--ghost" href="#how">See how it works</a>
+        </div>
+        <div class="cmd">
+          <span class="cmd__prompt" aria-hidden="true">$</span>
+          <code class="cmd__text">kubectl kupeye scan --target v1.37</code>
+          <button class="icon-btn" type="button" data-copy="kubectl kupeye scan --target v1.37" aria-label="Copy command">
+            <svg class="i i--18 icon-copy" aria-hidden="true"><use href="#i-copy"/></svg>
+            <svg class="i i--18 icon-copied" aria-hidden="true"><use href="#i-check"/></svg>
+          </button>
+        </div>
+        <ul class="checks">
+          <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg>Read-only agent</li>
+          <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg>No inbound ports</li>
+          <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg>Runs offline in CI</li>
+        </ul>
+      </div>
+
+      <div class="hero__visual">
+        <div class="halo" aria-hidden="true"></div>
+        <svg class="reticle" viewBox="0 0 880 880" aria-hidden="true" focusable="false">
+          <circle class="reticle__ring" cx="440" cy="440" r="432"/>
+          <g class="spin">
+            <circle class="reticle__ticks" cx="440" cy="440" r="414"/>
+            <circle class="reticle__arc" cx="440" cy="440" r="432"/>
+          </g>
+          <g class="spin spin--rev">
+            <circle class="reticle__dash" cx="440" cy="440" r="372"/>
+          </g>
+          <circle class="reticle__ring" cx="440" cy="440" r="338"/>
+          <path class="reticle__cross" d="M440 0V30M440 850V880"/>
+        </svg>
+
+        <article class="plan-card" aria-label="Example upgrade plan for the cluster prod-eu-1">
+          <header class="plan-card__head">
+            <div class="plan-card__title">
+              <p class="label">Upgrade plan</p>
+              <p class="plan-card__cluster">prod-eu-1 · kubeadm</p>
+            </div>
+            <p class="version">v1.34 <span class="version__arrow" aria-hidden="true">→</span><span class="sr-only">to</span> v1.37</p>
+          </header>
+
+          <div class="score-row">
+            <div class="ring">
+              <svg viewBox="0 0 108 108" role="img" aria-label="71 percent ready">
+                <circle class="ring__track" cx="54" cy="54" r="46"/>
+                <circle class="ring__value" cx="54" cy="54" r="46" transform="rotate(-90 54 54)"/>
+              </svg>
+              <div class="ring__label" aria-hidden="true"><span class="ring__num">71%</span><span class="label">ready</span></div>
+            </div>
+            <dl class="stats">
+              <div class="stat"><dt class="label">Blockers</dt><dd class="stat__num stat__num--block">3</dd></div>
+              <div class="stat"><dt class="label">Warnings</dt><dd class="stat__num stat__num--warn">1</dd></div>
+              <div class="stat"><dt class="label">Owners</dt><dd class="stat__num">4</dd></div>
+            </dl>
+          </div>
+
+          <div class="path">
+            <p class="label path__head"><span>Path</span><span>3 control-plane hops · 1 node roll</span></p>
+            <ol class="path__line">
+              <li>1.34</li>
+              <li>1.35</li>
+              <li>1.36</li>
+              <li class="is-target">1.37</li>
+            </ol>
+          </div>
+
+          <ul class="findings">
+            <li class="finding">
+              <span class="tag tag--block">Blocker</span>
+              <span class="finding__body"><span class="finding__title">cgroup v1 on 6 nodes</span><span class="finding__meta">kubelet won’t start · v1.35</span></span>
+              <span class="owner">@platform-nodes</span>
+            </li>
+            <li class="finding">
+              <span class="tag tag--block">Blocker</span>
+              <span class="finding__body"><span class="finding__title">gitRepo volume in ci-runners</span><span class="finding__meta">disabled for good · v1.36</span></span>
+              <span class="owner">@team-ci</span>
+            </li>
+            <li class="finding">
+              <span class="tag tag--block">Blocker</span>
+              <span class="finding__body"><span class="finding__title">Static Pod references a Secret</span><span class="finding__meta">rejected · v1.37</span></span>
+              <span class="owner">@platform</span>
+            </li>
+            <li class="finding">
+              <span class="tag tag--warn">Warning</span>
+              <span class="finding__body"><span class="finding__title">Service externalIPs on edge-gw</span><span class="finding__meta">removal planned · v1.43</span></span>
+              <span class="owner">@team-network</span>
+            </li>
+          </ul>
+
+          <footer class="gate">
+            <span class="gate__state"><svg class="i i--18" aria-hidden="true"><use href="#i-lock"/></svg>Upgrade gate closed</span>
+            <span class="gate__note">Opens when 3 blockers clear</span>
+          </footer>
+        </article>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="strip" aria-label="Built for">
+    <div class="container strip__inner">
+      <span class="strip__label">Built for</span>
+      <ul class="strip__list">
+        <li>kubeadm</li>
+        <li>RKE2</li>
+        <li>Cluster API</li>
+        <li>Helm</li>
+        <li>Argo CD</li>
+        <li>Flux</li>
+        <li>Prometheus</li>
+        <li>Grafana</li>
+      </ul>
+      <span class="strip__note">Amazon EKS next · GKE, AKS and OpenShift after</span>
+    </div>
+  </section>
+
+  <section class="section" id="why" aria-labelledby="why-title">
+    <div class="container stack">
+      <div class="section-head">
+        <p class="eyebrow">Why upgrades stall</p>
+        <h2 class="h2" id="why-title">Every release moves the ground under your clusters.</h2>
+      </div>
+      <div class="grid-auto">
+        <div class="stat-card">
+          <p class="stat-card__figure"><span class="stat-card__num">3</span><span class="label">releases a year</span></p>
+          <p>Kubernetes ships about three minor versions a year, and each one deprecates, removes or changes something you run.</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-card__figure"><span class="stat-card__num stat-card__num--alt">6×</span><span class="label">the price of waiting</span></p>
+          <p>Fall behind on EKS and each cluster bills $0.60 an hour in extended support instead of $0.10, for up to 12 more months.</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-card__figure"><span class="stat-card__num">1</span><span class="label">hop at a time</span></p>
+          <p>Control planes move one minor version per upgrade, so every release you skip adds another hop to the plan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt" id="product" aria-labelledby="product-title">
+    <div class="container stack stack--wide">
+      <div class="split-head">
+        <div class="section-head">
+          <p class="eyebrow">Owned attribution</p>
+          <h2 class="h2" id="product-title">Warnings say something is deprecated. KupEye says <span class="glow">who</span>.</h2>
+        </div>
+        <p class="lede split-head__aside">Every deprecated call in your audit log is traced from the request to the team that can fix it, with a confidence score on every link. Weak links are suggested, never assigned.</p>
+      </div>
+
+      <div class="chain-wrap">
+        <div class="rail" aria-hidden="true"><span class="signal"></span></div>
+        <ol class="chain">
+          <li class="chain-step">
+            <div class="chain-step__head"><span class="label">01 · Audit event</span><svg class="i" aria-hidden="true"><use href="#i-audit"/></svg></div>
+            <p class="chain-step__value"><span>list endpoints v1</span><span class="muted">agent lb-sync/1.4</span></p>
+            <span class="chip chip--warn">deprecated since v1.33</span>
+          </li>
+          <li class="chain-step">
+            <div class="chain-step__head"><span class="label">02 · Identity</span><svg class="i" aria-hidden="true"><use href="#i-user"/></svg></div>
+            <p class="chain-step__value"><span>ServiceAccount</span><span class="muted">network/lb-sync</span></p>
+            <span class="chip chip--accent">99% match</span>
+          </li>
+          <li class="chain-step">
+            <div class="chain-step__head"><span class="label">03 · Workload</span><svg class="i" aria-hidden="true"><use href="#i-box"/></svg></div>
+            <p class="chain-step__value"><span>Deployment</span><span class="muted">network/lb-sync</span></p>
+            <span class="chip chip--accent">100% match</span>
+          </li>
+          <li class="chain-step">
+            <div class="chain-step__head"><span class="label">04 · Delivery</span><svg class="i" aria-hidden="true"><use href="#i-branch"/></svg></div>
+            <p class="chain-step__value"><span>Flux Kustomization</span><span class="muted">infra-network</span></p>
+            <span class="chip chip--accent">96% match</span>
+          </li>
+          <li class="chain-step chain-step--owner">
+            <div class="chain-step__head"><span class="label">05 · Owner</span><svg class="i" aria-hidden="true"><use href="#i-team"/></svg></div>
+            <p class="chain-step__value"><strong>@team-network</strong><span class="muted">via CODEOWNERS</span></p>
+            <span class="chip chip--solid"><svg class="i i--12" aria-hidden="true"><use href="#i-check"/></svg>notified</span>
+          </li>
+        </ol>
+      </div>
+
+      <div class="grid-auto points">
+        <div class="point">
+          <h3 class="point__title"><svg class="i" aria-hidden="true"><use href="#i-activity"/></svg>Metrics and audit, together</h3>
+          <p>Reads the <code>apiserver_requested_deprecated_apis</code> metric and audit annotations, keeps 90 days including reads, and feeds the same numbers to Grafana.</p>
+        </div>
+        <div class="point">
+          <h3 class="point__title"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Identity over time</h3>
+          <p>Joins service accounts and Pod IPs by time window, so short-lived Jobs and CronJobs don’t slip through.</p>
+        </div>
+        <div class="point">
+          <h3 class="point__title"><svg class="i" aria-hidden="true"><use href="#i-team"/></svg>Ends at a person</h3>
+          <p>Owners come from CODEOWNERS or namespace labels, so each fix lands with the team that can make it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="container stack">
+      <div class="section-head">
+        <p class="eyebrow">Readiness, end to end</p>
+        <h2 class="h2" id="features-title">Everything that can break an upgrade, checked in one place.</h2>
+        <p class="lede">API removals are only the start. KupEye also checks the nodes, add-ons, storage and behaviour changes that catch teams out halfway through an upgrade.</p>
+      </div>
+
+      <div class="bento">
+        <div class="card card--wide">
+          <span class="card__icon"><svg class="i i--22" aria-hidden="true"><use href="#i-server"/></svg></span>
+          <h3>Nodes and runtimes</h3>
+          <p>A read-only probe checks every node for cgroup v1, containerd 1.x, kube-proxy in ipvs mode and the old CRI v1alpha2 API, before a new kubelet finds out the hard way.</p>
+          <div class="nodes" aria-hidden="true">
+            <span class="node"></span><span class="node"></span><span class="node"></span><span class="node node--block"></span><span class="node"></span><span class="node"></span><span class="node node--block"></span><span class="node node--block"></span>
+            <span class="node"></span><span class="node"></span><span class="node"></span><span class="node"></span><span class="node"></span><span class="node node--block"></span><span class="node"></span><span class="node"></span>
+            <span class="node"></span><span class="node"></span><span class="node"></span><span class="node"></span><span class="node node--block"></span><span class="node"></span><span class="node"></span><span class="node"></span>
+            <span class="node"></span><span class="node"></span><span class="node node--block"></span><span class="node"></span><span class="node"></span><span class="node"></span><span class="node"></span><span class="node"></span>
+          </div>
+          <p class="legend">
+            <span>prod-eu-1 · 32 nodes</span>
+            <span class="legend__block"><span class="legend__swatch legend__swatch--block" aria-hidden="true"></span>6 on cgroup v1</span>
+            <span><span class="legend__swatch" aria-hidden="true"></span>26 ready</span>
+          </p>
+        </div>
+
+        <div class="card card--wide">
+          <span class="card__icon card__icon--alt"><svg class="i i--22" aria-hidden="true"><use href="#i-code"/></svg></span>
+          <h3>Behaviour, not just apiVersion</h3>
+          <p>Open CEL rules catch changes that keep the same API but break your workloads, like static Pods losing Secret references in v1.37 or SELinux mount labels on shared volumes.</p>
+<pre class="code"><code><span class="k">id:</span> static-pod-secret-ref
+<span class="k">since:</span> <span class="v">v1.37</span>
+<span class="k">match: |</span>
+  has(object.metadata.annotations[<span class="s">'kubernetes.io/config.mirror'</span>])
+  &amp;&amp; object.spec.volumes.exists(v, has(v.secret))</code></pre>
+        </div>
+
+        <div class="card">
+          <span class="card__icon"><svg class="i i--22" aria-hidden="true"><use href="#i-layers"/></svg></span>
+          <h3>Add-on compatibility</h3>
+          <p>An open matrix of which operator and add-on versions run on which Kubernetes versions, reviewed in public.</p>
+        </div>
+
+        <div class="card">
+          <span class="card__icon"><svg class="i i--22" aria-hidden="true"><use href="#i-drain"/></svg></span>
+          <h3>Drain simulation</h3>
+          <p>Replays each node drain against PodDisruptionBudgets and the scheduler, so a stuck drain shows up in the plan, not in production.</p>
+        </div>
+
+        <div class="card">
+          <span class="card__icon"><svg class="i i--22" aria-hidden="true"><use href="#i-flask"/></svg></span>
+          <h3>Upgrade rehearsal</h3>
+          <p>Applies your real manifests to a throwaway API server on the target version and lists everything it rejects.</p>
+        </div>
+
+        <div class="card">
+          <span class="card__icon"><svg class="i i--22" aria-hidden="true"><use href="#i-db"/></svg></span>
+          <h3>Storage migration</h3>
+          <p>Finds objects stored at old CRD versions and drives StorageVersionMigration, GA in v1.37, before a version is dropped.</p>
+        </div>
+
+        <div class="card card--wide">
+          <span class="card__icon"><svg class="i i--22" aria-hidden="true"><use href="#i-rollback"/></svg></span>
+          <h3>Rollback readiness</h3>
+          <p>Marks every point of no return in the plan, and the provider windows that matter, like the 7 days EKS allows to roll a control plane back.</p>
+          <ul class="mini-list">
+            <li><span class="dot" aria-hidden="true"></span><span class="mini-list__text">Hop 1 · control plane to v1.35</span><span class="state">rollback open</span></li>
+            <li><span class="dot dot--alt" aria-hidden="true"></span><span class="mini-list__text">Stored objects migrated to new versions</span><span class="state state--alt">no way back</span></li>
+          </ul>
+        </div>
+
+        <div class="card card--wide">
+          <span class="card__icon"><svg class="i i--22" aria-hidden="true"><use href="#i-pr"/></svg></span>
+          <h3>Fixes as pull requests</h3>
+          <p>Opens a pull request in the repo that owns the manifest, with the change already written and the owning team asked to review.</p>
+          <div class="pr">
+            <p class="pr__title"><svg class="i i--18" aria-hidden="true"><use href="#i-pr"/></svg>Replace gitRepo volume in ci-runners</p>
+            <p class="pr__meta"><span>kupeye-bot → platform/ci-runners</span><span class="pr__add">+14</span><span class="pr__del">−9</span><span>review: @team-ci</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt" id="plan" aria-labelledby="plan-title">
+    <div class="container stack">
+      <div class="section-head">
+        <p class="eyebrow">Plan and gate</p>
+        <h2 class="h2" id="plan-title">A path, not a guess.</h2>
+        <p class="lede">KupEye plans each hop from where you are to where you need to be, keeps nodes inside the supported kubelet skew, and shows what every month of waiting costs.</p>
+      </div>
+
+      <div class="plan-stack">
+        <ol class="hops">
+          <li class="hop">
+            <span class="label">Today</span>
+            <span class="hop__ver">v1.34</span>
+            <span class="hop__desc">Control plane and nodes</span>
+          </li>
+          <li class="chev" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="#i-chevron"/></svg></li>
+          <li class="hop">
+            <span class="label">Hop 1</span>
+            <span class="hop__ver">v1.35</span>
+            <span class="hop__desc">Control plane</span>
+            <span class="gate-chip"><svg class="i i--12" aria-hidden="true"><use href="#i-lock"/></svg>Rehearsal passes</span>
+          </li>
+          <li class="chev" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="#i-chevron"/></svg></li>
+          <li class="hop">
+            <span class="label">Hop 2</span>
+            <span class="hop__ver">v1.36</span>
+            <span class="hop__desc">Control plane</span>
+            <span class="gate-chip"><svg class="i i--12" aria-hidden="true"><use href="#i-lock"/></svg>No removed APIs called</span>
+          </li>
+          <li class="chev" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="#i-chevron"/></svg></li>
+          <li class="hop">
+            <span class="label">Hop 3</span>
+            <span class="hop__ver">v1.37</span>
+            <span class="hop__desc">Control plane</span>
+            <span class="gate-chip"><svg class="i i--12" aria-hidden="true"><use href="#i-lock"/></svg>CRD storage migrated</span>
+          </li>
+          <li class="chev" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="#i-chevron"/></svg></li>
+          <li class="hop hop--target">
+            <span class="label">Node roll</span>
+            <span class="hop__ver">v1.37</span>
+            <span class="hop__desc">All node pools, once</span>
+            <span class="gate-chip gate-chip--alt"><svg class="i i--12" aria-hidden="true"><use href="#i-lock"/></svg>cgroup v2 · containerd 2</span>
+          </li>
+        </ol>
+        <p class="note">Nodes stay on v1.34 through every control-plane hop, inside the three-minor kubelet skew, then roll once.</p>
+      </div>
+
+      <div class="gate-band">
+        <p><strong>KupEye never runs your upgrade.</strong> It answers the gate, so the tools you already trust go ahead only when the evidence is clean.</p>
+        <ul class="chips">
+          <li><svg class="i i--16" aria-hidden="true"><use href="#i-shield"/></svg>Cluster API hooks</li>
+          <li><svg class="i i--16" aria-hidden="true"><use href="#i-shield"/></svg>Argo CD and Flux</li>
+          <li><svg class="i i--16" aria-hidden="true"><use href="#i-shield"/></svg>CI pipelines</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="container stack">
+      <div class="section-head">
+        <p class="eyebrow">How it works</p>
+        <h2 class="h2" id="how-title">From install to a green gate in three steps.</h2>
+      </div>
+      <div class="how">
+        <ol class="steps">
+          <li class="step">
+            <span class="step__num" aria-hidden="true">01</span>
+            <div>
+              <h3>Install the agent</h3>
+              <p>One read-only Helm chart per cluster. It connects out over mutual TLS, so there are no inbound ports to open and no VPN to run.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step__num" aria-hidden="true">02</span>
+            <div>
+              <h3>Collect the evidence</h3>
+              <p>Stored objects, live API calls, audit identities, nodes and add-ons, checked against a signed knowledge base generated from the Kubernetes source.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step__num" aria-hidden="true">03</span>
+            <div>
+              <h3>Plan, fix and gate</h3>
+              <p>Get the hop-by-hop path, owners notified, pull requests opened, and a gate your pipeline can wait on.</p>
+            </div>
+          </li>
+        </ol>
+
+        <figure class="terminal" aria-label="Example output of kubectl kupeye scan in CI">
+          <div class="terminal__bar">
+            <span><svg class="i i--16" aria-hidden="true"><use href="#i-terminal"/></svg>ci · upgrade-check</span>
+            <span>exit 2</span>
+          </div>
+<pre class="terminal__body"><span class="t-acc">$</span> kubectl kupeye scan --target v1.37
+<span class="t-dim">checked 1,284 objects · 32 nodes · 27 add-ons</span>
+<span class="t-block">3 blockers</span> · <span class="t-warn">1 warning</span> · 4 owners
+
+<span class="t-block">BLOCK</span>  cgroup v1 on 6 nodes            <span class="t-acc">@platform-nodes</span>
+<span class="t-block">BLOCK</span>  gitRepo volume · ci-runners     <span class="t-acc">@team-ci</span>
+<span class="t-block">BLOCK</span>  static Pod -&gt; Secret            <span class="t-acc">@platform</span>
+<span class="t-warn">WARN</span>   Service externalIPs · edge-gw   <span class="t-acc">@team-network</span>
+
+<span class="t-dim">wrote kupeye.sarif · gate closed</span></pre>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt" id="pricing" aria-labelledby="pricing-title">
+    <div class="container stack">
+      <div class="section-head">
+        <p class="eyebrow">Pricing</p>
+        <h2 class="h2" id="pricing-title">Open source at the core. Pay when you run a fleet.</h2>
+        <p class="lede">Every tier runs the same engine. Paid tiers add fleet features and a knowledge base that updates the day a Kubernetes release ships.</p>
+      </div>
+      <div class="pricing">
+
+        <div class="plan">
+          <div class="plan__head">
+            <h3>Community</h3>
+            <p>For one cluster, a laptop or a CI job.</p>
+          </div>
+          <p class="plan__price"><span class="plan__amount">Free</span><span class="plan__unit">Apache 2.0</span></p>
+          <a class="btn btn--primary" href="#start">Start free</a>
+          <ul class="plan__list">
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Engine, CLI and kubectl plugin</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Agent, node probe and single-cluster dashboard</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>SARIF reports and exit codes for CI</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Open knowledge base, updated about 30 days after each release</span></li>
+          </ul>
+        </div>
+
+        <div class="plan plan--featured">
+          <span class="plan__tag">Self-hosted</span>
+          <div class="plan__head">
+            <h3>Pro</h3>
+            <p>For platform teams running a fleet.</p>
+          </div>
+          <p class="plan__price"><span class="placeholder">[PRICE]</span><span class="plan__unit">per cluster</span></p><!-- TODO: set the Pro price -->
+          <a class="btn btn--ghost" href="#contact">Talk to us</a><!-- TODO: contact link -->
+          <ul class="plan__list">
+            <li class="plan__lead">Everything in Community, plus:</li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Fleet waves and upgrade gates</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Owner attribution across teams</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>SSO, RBAC and audit-ready reports</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Pull-request bots</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Premium knowledge base with same-day updates</span></li>
+          </ul>
+        </div>
+
+        <div class="plan">
+          <span class="plan__tag plan__tag--alt">Hosted</span>
+          <div class="plan__head">
+            <h3>Cloud</h3>
+            <p>For teams that would rather not run the hub.</p>
+          </div>
+          <p class="plan__price"><span class="placeholder">[PRICE]</span><span class="plan__unit">per cluster, per month</span></p><!-- TODO: set the Cloud price -->
+          <a class="btn btn--ghost" href="#contact">Join the waitlist</a><!-- TODO: waitlist link -->
+          <ul class="plan__list">
+            <li class="plan__lead">Everything in Pro, plus:</li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Hub hosted and run by us</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Only the agent runs in your clusters</span></li>
+            <li><svg class="i i--16" aria-hidden="true"><use href="#i-check"/></svg><span>Billed monthly, per cluster</span></li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="start" aria-labelledby="start-title">
+    <div class="container">
+      <div class="cta-box">
+        <div class="grid-bg" aria-hidden="true"></div>
+        <div class="cta-box__halo" aria-hidden="true"></div>
+        <div class="cta-box__content">
+          <svg class="cta-box__mark" aria-hidden="true"><use href="#mark"/></svg>
+          <h2 class="h2 cta-box__title" id="start-title">Your next upgrade, with <span class="glow">eyes open</span>.</h2>
+          <p>Install the read-only agent, point it at your next version, and see every blocker with a team’s name next to it.</p>
+          <div class="cta-row">
+            <a class="btn btn--primary" href="#docs"><span>Start free</span><svg class="i i--18" aria-hidden="true"><use href="#i-arrow"/></svg></a><!-- TODO: link to the install guide -->
+            <a class="btn btn--ghost" href="#docs">Read the docs</a><!-- TODO: link to the docs -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer__inner">
+    <div class="footer__top">
+      <a class="brand brand--sm" href="#top" aria-label="KupEye home">
+        <svg class="brand__mark" aria-hidden="true"><use href="#mark"/></svg>
+        <span class="brand__name">Kup<span>Eye</span></span>
+      </a>
+      <nav class="footer__nav" aria-label="Footer">
+        <a class="link" href="#docs">Docs</a>
+        <a class="link" href="#github">GitHub</a>
+        <a class="link" href="#kb">Knowledge base</a>
+        <a class="link" href="#contact">Contact</a>
+      </nav><!-- TODO: point these at real pages -->
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 KupEye · open-source core under Apache 2.0</span>
+      <span>Kubernetes is a registered trademark of the Linux Foundation.</span>
+    </div>
+  </div>
+</footer>
+
+<p class="sr-only" aria-live="polite" data-copy-status></p>
+</body>
+</html>

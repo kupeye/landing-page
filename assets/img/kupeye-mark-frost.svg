@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 8 48 48" width="96" height="96" role="img" aria-label="KupEye">
+  <g fill="none" stroke="#CFF4FF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 21.2 32 13.5 48 21.2"/>
+    <path d="M32 23.5 42.95 28.77 45.65 40.62 38.07 50.11 25.93 50.11 18.35 40.62 21.05 28.77Z"/>
+  </g>
+  <circle cx="32" cy="37.5" r="6" fill="#CFF4FF"/>
+</svg>
